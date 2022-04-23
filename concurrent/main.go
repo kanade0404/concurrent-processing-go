@@ -14,25 +14,28 @@ func getLuckyNum(c chan<- int) {
 	c <- num // 結果をチャネルに送信
 }
 
+func generator(done chan struct{}) <-chan int {
+	result := make(chan int)
+	go func() {
+		defer close(result)
+	LOOP:
+		for {
+			select {
+			case <-done:
+				break LOOP
+			case result <- 1:
+
+			}
+		}
+	}()
+	return result
+}
+
 func main() {
-	src := []int{1, 2, 3, 4, 5}
-	dst := []int{}
-	c := make(chan int)
-
-	// srcの要素毎にある何か処理をして、結果をdstにいれる
-	for _, s := range src {
-		go func(s int, c chan int) {
-			// 何か(重い)処理をする
-			time.Sleep(time.Second)
-			result := s * 2
-			c <- result
-		}(s, c)
+	done := make(chan struct{})
+	result := generator(done)
+	for i := 0; i < 5; i++ {
+		fmt.Println(<-result)
 	}
-	for _ = range src {
-		num := <-c
-		dst = append(dst, num)
-	}
-
-	fmt.Println(dst)
-	close(c)
+	close(done)
 }
